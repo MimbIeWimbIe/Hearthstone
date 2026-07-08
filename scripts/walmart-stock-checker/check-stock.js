@@ -57,8 +57,30 @@ async function checkForBlock(page) {
   }
 }
 
+// Interactive challenges (e.g. Akamai "press & hold") replace the page content until a
+// human clears them. Racing past one with scripted input is itself a bot signal, so pause
+// and poll until the challenge text is gone (or the timeout elapses) before doing anything else.
+async function waitForHumanChallenge(page, maxWaitMs = 120000) {
+  const start = Date.now();
+  let announced = false;
+  while (Date.now() - start < maxWaitMs) {
+    const bodyText = await page.evaluate(() => document.body?.innerText || "").catch(() => "");
+    const challengePresent = /press\s*(&|and)\s*hold|verify you are human|human verification|additional verification|security check/i.test(
+      bodyText
+    );
+    if (!challengePresent) return;
+    if (!announced) {
+      log("A Walmart security challenge appeared in the browser window — please complete it now. Waiting...");
+      announced = true;
+    }
+    await page.waitForTimeout(2000);
+  }
+  log("Gave up waiting for the security challenge to clear after 2 minutes.");
+}
+
 async function openStoreFinder(page, zip) {
   await page.goto("https://www.walmart.com/store/finder", { waitUntil: "domcontentloaded" });
+  await waitForHumanChallenge(page);
   await checkForBlock(page);
 
   const input = page
@@ -69,6 +91,7 @@ async function openStoreFinder(page, zip) {
   await input.first().fill(zip);
   await input.first().press("Enter");
   await page.waitForTimeout(3000);
+  await waitForHumanChallenge(page);
   await checkForBlock(page);
 }
 
@@ -114,6 +137,7 @@ async function getNearbyStores(page, radiusMiles) {
 
 async function selectStore(page, store) {
   await page.goto(store.url, { waitUntil: "domcontentloaded" });
+  await waitForHumanChallenge(page);
   await checkForBlock(page);
 
   const setStoreButton = page.getByRole("button", {
@@ -136,6 +160,7 @@ async function selectStore(page, store) {
 async function searchTermInStock(page, term) {
   const searchUrl = `https://www.walmart.com/search?q=${encodeURIComponent(term)}`;
   await page.goto(searchUrl, { waitUntil: "domcontentloaded" });
+  await waitForHumanChallenge(page);
   await checkForBlock(page);
   await page.waitForTimeout(2000);
 
