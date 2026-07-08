@@ -1,0 +1,16 @@
+{
+  "name": "walmart-stock-checker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Checks walmart.com for toy in-stock-for-pickup status at nearby stores and emails when found.",
+  "main": "check-stock.js",
+  "scripts": {
+    "start": "node check-stock.js",
+    "postinstall": "playwright install chromium"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "nodemailer": "^6.9.14",
+    "playwright": "^1.48.0"
+  }
+}
