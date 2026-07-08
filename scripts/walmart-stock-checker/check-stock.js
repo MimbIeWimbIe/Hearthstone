@@ -256,7 +256,8 @@ async function main() {
     const stores = await getNearbyStores(page, config.radiusMiles);
 
     if (stores.length === 0) {
-      log("No stores found within radius — nothing to check. If this is unexpected, Walmart's store finder page layout may have changed; see DEBUG=1 for a screenshot.");
+      log("No stores found within radius — nothing to check. If this is unexpected, Walmart's store finder page layout may have changed.");
+      await saveDebugArtifacts(page, "no-stores-found");
       return;
     }
 
