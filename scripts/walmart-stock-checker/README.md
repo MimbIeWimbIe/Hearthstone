@@ -20,6 +20,17 @@ setting your ZIP and searching. If Walmart shows a "Robot or human?" / CAPTCHA
 challenge, solve it manually in that window; the browser profile is saved in
 `.wm-profile/` so it should persist across future runs.
 
+The script now pauses and waits (up to 2 minutes) whenever it detects an
+interactive challenge like "press & hold," logging a message so you know to go
+solve it in the window — it no longer races ahead and types into a page that's
+still covered by the challenge, which is itself a bot signal.
+
+If a run gets hard-blocked (the log says "Walmart's bot detection blocked this
+request" and the URL contains `/blocked`), Walmart has flagged that session.
+Delete the `.wm-profile/` folder to start fresh with new cookies, wait a while
+before retrying (Akamai blocks are often temporary), and make sure to fully
+solve any challenge before the script's next step fires.
+
 If a step can't find something it expects (Walmart changed their page layout),
 the script logs a clear error and — if run with `DEBUG=1` — saves a screenshot
 and HTML dump to `debug/` so you (or a future coding session) can see exactly
