@@ -83,16 +83,33 @@ async function openStoreFinder(page, zip) {
   await waitForHumanChallenge(page);
   await checkForBlock(page);
 
-  const input = page
-    .getByRole("textbox", { name: /city|zip|location|search/i })
-    .or(page.getByPlaceholder(/city.*zip|zip.*code|location/i));
-
+  // Scoped to the store finder's own field ("Enter zip code or city, state") so this can't
+  // accidentally grab the global site search box in the header, which sits earlier in the DOM.
+  const input = page.getByPlaceholder(/zip code or city/i);
   await input.first().waitFor({ timeout: 15000 });
-  await input.first().fill(zip);
-  await input.first().press("Enter");
-  await page.waitForTimeout(3000);
+  await input.first().click();
+  await input.first().fill("");
+  // Typed key-by-key, not .fill(), because this field drives a live autocomplete dropdown
+  // that a plain programmatic value-set doesn't reliably trigger.
+  await input.first().pressSequentially(zip, { delay: 80 });
+  await page.waitForTimeout(800);
+
+  const findButton = page.getByRole("button", { name: /find store/i });
+  await findButton.first().click();
+
+  await Promise.race([
+    page.getByText(/\d+(\.\d+)?\s*mi\b/i).first().waitFor({ timeout: 10000 }),
+    page.getByText(/couldn.?t find any matching results/i).first().waitFor({ timeout: 10000 }),
+  ]).catch(() => {});
   await waitForHumanChallenge(page);
   await checkForBlock(page);
+
+  const noResults = await page.getByText(/couldn.?t find any matching results/i).count();
+  if (noResults > 0) {
+    log(`Store finder showed no results for ZIP ${zip} on the first try — retrying once.`);
+    await findButton.first().click();
+    await page.waitForTimeout(4000);
+  }
 }
 
 async function getNearbyStores(page, radiusMiles) {
